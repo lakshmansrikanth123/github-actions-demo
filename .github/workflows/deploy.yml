@@ -6,10 +6,13 @@ on:
       - main
 
 jobs:
+
   deploy:
+
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v6
 
@@ -17,3 +20,28 @@ jobs:
         run: |
           test -f index.html
           echo "Application test successful"
+
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_KEY: ${{ secrets.EC2_SSH_KEY }}
+
+        run: |
+
+          echo "$EC2_KEY" > private_key.pem
+
+          chmod 600 private_key.pem
+
+          scp -o StrictHostKeyChecking=no \
+            -i private_key.pem \
+            index.html \
+            ubuntu@$EC2_HOST:/tmp/index.html
+
+          ssh -o StrictHostKeyChecking=no \
+            -i private_key.pem \
+            ubuntu@$EC2_HOST \
+            "sudo cp /tmp/index.html /var/www/html/index.html"
+
+          rm -f private_key.pem
+
+          echo "Deployment completed successfully"
